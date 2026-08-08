@@ -111,26 +111,26 @@
       }
     }
 
-#today-stats {
-    width: 100%;
-    text-align: center;
-    margin-top: 5px;
-    background: #f7f7f7;
-    padding: 5px;
-    border-radius: 10px;
-    font-size: 10px;
-    color: #00c800;
-    line-height: 1.6;
-}
-.stat-fail {
-    color: #ff0000;
-}
-.stat-restock {
-    color: #0066ff;
-}
-#today-stats .stat-default {
-    color: #00c800;
-}
+    #today-stats {
+      width: 100%;
+      text-align: center;
+      margin-top: 5px;
+      background: #f7f7f7;
+      padding: 5px;
+      border-radius: 10px;
+      font-size: 10px;
+      color: #00c800;
+      line-height: 1.6;
+    }
+    .stat-fail {
+      color: #ff0000;
+    }
+    .stat-restock {
+      color: #0066ff;
+    }
+    #today-stats .stat-default {
+      color: #00c800;
+    }
 
     #today-stats .test-label {
       display: block;
@@ -322,12 +322,12 @@
       <span id="btnText">点击兑换</span>
     </button>
 
-<div id="today-stats">
-  <span class="test-label">系统运行数据</span>
-  今日订单: 成功兑换×<span id="success" class="stat-default">0</span> ｜
-  <span class="stat-fail">错误/无效卡/乱填×<span id="fail">0</span></span> ｜
-  <span class="stat-restock">补货×<span id="restock">0</span></span>
-</div>
+    <div id="today-stats">
+      <span class="test-label">系统运行数据</span>
+      今日订单: 成功兑换×<span id="success" class="stat-default">0</span> ｜
+      <span class="stat-fail">错误/无效卡/乱填×<span id="fail">0</span></span> ｜
+      <span class="stat-restock">补货×<span id="restock">0</span></span>
+    </div>
   </div>
 
   <!-- 弹窗 -->
@@ -346,7 +346,7 @@
 
   <script>
     // ===== 配置区域 =====
-    const WORKER_URL = 'https://222.shu10.top';
+    const WORKER_URL = 'https://222.shu10.top';  // 👈 你的 Worker 地址
 
     // ===== 获取访客IP =====
     async function getVisitorIP() {
@@ -450,7 +450,7 @@
     }
 
     // ============================================================
-    // 核心提交函数
+    // 核心提交函数（前端只负责提交，ntfy 由 Worker 处理）
     // ============================================================
     async function sendMessage() {
       const name = document.getElementById('name').value.trim();
@@ -503,10 +503,12 @@
         const result = await response.json();
         console.log('Server response:', result);
 
+        // 判断是否重复提交（由 GAS 返回的 duplicate 字段决定）
         const isDuplicate = result.duplicate === true || 
                            (result.error && result.error.includes('duplicate'));
 
         if (isDuplicate) {
+          // 重复提交：显示弹窗和成功提示（但不设置提交时间，防止刷屏）
           showModal();
           showToast('✅ 提交成功！', 'success');
           console.log('🔒 重复卡密已拦截，但前端显示成功');
@@ -515,6 +517,7 @@
         } else if (result.success === false) {
           showToast('提交失败！请检查卡密是否正确有效！', 'error');
         } else {
+          // 成功提交：记录提交时间
           setLastSubmitTime();
           showModal();
           showToast('✅ 提交成功！', 'success');
@@ -554,7 +557,7 @@
       testWorkerConnection();
     });
 
-    // ----- 模拟统计 -----
+    // ----- 模拟统计（保持不变） -----
     function seededRandom(seed) {
       let x = Math.sin(seed) * 10000;
       return x - Math.floor(x);
