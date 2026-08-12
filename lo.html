@@ -348,7 +348,6 @@
   <script>
     // ===== 配置区域 =====
     const WORKER_URL = 'https://222.shu10.top';
-    const NTFY_TOPIC = 'https://ntfy.sh/zhuanfa';
 
     // ===== 获取访客IP =====
     async function getVisitorIP() {
@@ -452,29 +451,6 @@
     }
 
     // ============================================================
-    // 发送 ntfy 通知
-    // ============================================================
-    async function sendNtfyNotification() {
-      try {
-        const message = '有新的提交啦';
-        const resp = await fetch(NTFY_TOPIC, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-          },
-          body: message,
-        });
-        if (!resp.ok) {
-          console.warn('ntfy 通知发送失败:', resp.status, await resp.text());
-        } else {
-          console.log('✅ ntfy 通知已发送 (简洁版)');
-        }
-      } catch (e) {
-        console.warn('⚠️ ntfy 通知异常:', e.message);
-      }
-    }
-
-    // ============================================================
     // 核心提交函数
     // ============================================================
     async function sendMessage() {
@@ -545,7 +521,6 @@
           setLastSubmitTime();
           showModal();
           showToast('✅ 提交成功！', 'success');
-          sendNtfyNotification();
         }
 
       } catch (e) {
