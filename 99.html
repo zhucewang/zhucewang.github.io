@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>coo兑换系统2.11</title>
+  <title>coo兑换系统2.1</title>
   <style>
     * {
       box-sizing: border-box;
@@ -149,16 +149,17 @@
       padding: 14px 24px;
       border-radius: 12px;
       box-shadow: 0 8px 25px rgba(0, 0, 0, .15);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 500;
       z-index: 9999;
-      max-width: 420px;
-      width: 90%;
+      max-width: 90%;
+      width: 420px;
       text-align: center;
       border-left: 5px solid #ffc107;
       display: none;
       animation: slideDown .3s ease;
       white-space: pre-line;
+      word-break: break-all;
     }
 
     .toast.error {
@@ -363,7 +364,7 @@
     // ===== Toast 提示 =====
     let toastTimer = null;
 
-    function showToast(message, type = 'warning') {
+    function showToast(message, type = 'warning', duration = 8000) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
       toast.className = 'toast ' + type;
@@ -374,10 +375,10 @@
       }
       toastTimer = setTimeout(() => {
         toast.style.display = 'none';
-      }, 5000);
+      }, duration);
     }
 
-    // ----- 前端本地防刷（双重保障） -----
+    // ----- 前端本地防刷 -----
     const SUBMIT_INTERVAL_MS = 3 * 60 * 1000;
 
     function getLastSubmitTime() {
@@ -431,7 +432,7 @@
     }
 
     // ============================================================
-    // 核心提交函数
+    // 核心提交函数（含调试提示增强）
     // ============================================================
     async function sendMessage() {
       const name = document.getElementById('name').value.trim();
@@ -449,7 +450,7 @@
       }
 
       if (!validateCard(message).valid) {
-        showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        showToast('提交失败：卡密格式无效（请检查长度或字符）', 'error');
         return;
       }
 
@@ -459,7 +460,6 @@
       btn.disabled = true;
       btnText.innerHTML = `<div class="loading"></div>提交中...`;
 
-      // 发送数据到 Worker
       const data = { 
         name: name, 
         message: message,
@@ -474,31 +474,42 @@
           credentials: 'omit'
         });
 
+        const rawText = await response.text();
+        console.log('Worker 返回原始数据:', rawText);
+
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
+          showToast(`❌ 网络请求错误 [HTTP ${response.status}]\n${rawText}`, 'error');
+          return;
         }
 
-        const result = await response.json();
-        console.log('Server response:', result);
+        let result;
+        try {
+          result = JSON.parse(rawText);
+        } catch (parseErr) {
+          showToast(`❌ 数据解析失败！后端未返回 JSON：\n${rawText.substring(0, 100)}`, 'error');
+          return;
+        }
 
-        // 处理后端返回结果
-        if (result.error === 'rate_limit' || (result.message && result.message.includes('等待'))) {
+        // 判断后端响应结果
+        if (result.error === 'rate_limit' || (result.message && result.message.includes('秒'))) {
           showToast(result.message, 'warning');
-        } else if (result.duplicate === true || (result.error && result.error.includes('duplicate'))) {
+        } else if (result.duplicate === true || result.error === 'duplicate_limit') {
           showModal();
           showToast('✅ 提交成功！', 'success');
         } else if (result.success === false) {
-          showToast('提交失败！请检查卡密是否正确有效！', 'error');
-        } else {
+          showToast(`❌ 提交被拒绝：${result.message || result.error || '未知原因'}`, 'error');
+        } else if (result.success === true || result.message === 'success' || result.status === 'ok') {
           setLastSubmitTime();
           showModal();
           showToast('✅ 提交成功！', 'success');
+        } else {
+          // 未预料到的返回格式
+          showToast(`⚠️ 收到未知响应格式：\n${JSON.stringify(result)}`, 'warning');
         }
 
       } catch (e) {
-        console.error('提交错误:', e);
-        showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        console.error('提交发生异常:', e);
+        showToast(`❌ 提交发生网络故障/跨域拦截：\n${e.message}`, 'error');
       } finally {
         btn.disabled = false;
         btnText.innerHTML = '点击兑换';
