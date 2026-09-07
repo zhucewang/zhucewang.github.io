@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>coo兑换系统2.311</title>
-  <!-- 1. 引入 Cloudflare Turnstile 官方 SDK -->
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+  <title>coo兑换系统2.31</title>
+  <!-- 标准引入 Cloudflare Turnstile 脚本 -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
     * {
       box-sizing: border-box;
@@ -75,7 +75,7 @@
       resize: none;
     }
 
-    /* Turnstile 居中样式 */
+    /* Turnstile 居中容器 */
     .turnstile-box {
       display: flex;
       justify-content: center;
@@ -321,9 +321,9 @@
     <input id="name" placeholder="请输入面额:50/100/200">
     <textarea id="message" placeholder="请输入卡/乱填无效"></textarea>
 
-    <!-- 2. Turnstile 验证组件容器（替换为你的 Turnstile Site Key） -->
+    <!-- Turnstile 标准容器（请替换下面的站点密钥） -->
     <div class="turnstile-box">
-      <div class="cf-turnstile" data-sitekey="0x4AAAAAAEquvjd2E0TIw9fX"></div>
+      <div class="cf-turnstile" data-sitekey="你的_TURNSTILE_SITE_KEY"></div>
     </div>
 
     <button id="submitBtn" class="submit-btn" onclick="sendMessage()">
@@ -452,17 +452,17 @@
       const name = document.getElementById('name').value.trim();
       const message = document.getElementById('message').value;
 
-      // 提取 Turnstile 验证 Token
-      const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
+      // 提取 Turnstile Token
+      const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
 
       if (!name || !message) {
         showToast('⚠️ 请填写完整信息！', 'warning');
         return;
       }
 
-      // 3. 校验 Turnstile 人机验证
+      // 校验人机验证状态
       if (!turnstileToken) {
-        showToast('⚠️ 请先完成安全验证（勾选或等待人机检测通过）', 'warning');
+        showToast('⚠️ 请先完成安全验证（勾选或等待验证打勾）', 'warning');
         return;
       }
 
@@ -487,7 +487,7 @@
         name: name, 
         message: message,
         page: getPageName(),
-        turnstileToken: turnstileToken // 随数据一同提交给 Worker 进行后端二次验证
+        turnstileToken: turnstileToken
       };
 
       try {
@@ -503,7 +503,6 @@
 
         if (!response.ok) {
           showToast(`❌ 网络请求错误 [HTTP ${response.status}]\n${rawText}`, 'error');
-          // 提交失败时重置 Turnstile 挂件，方便用户再次验证
           if (window.turnstile) turnstile.reset();
           return;
         }
@@ -539,7 +538,6 @@
       } finally {
         btn.disabled = false;
         btnText.innerHTML = '点击兑换';
-        // 每次提交后刷新验证组件
         if (window.turnstile) turnstile.reset();
       }
     }
