@@ -4,10 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>coo兑换系统2.31</title>
-  <!-- 1. 引入 Cloudflare Turnstile 官方 SDK -->
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-
+  <title>coo兑换系统2.311</title>
   <style>
     * {
       box-sizing: border-box;
@@ -74,13 +71,6 @@
     textarea {
       height: 90px;
       resize: none;
-    }
-
-    /* Turnstile 验证框样式 */
-    .turnstile-box {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 15px;
     }
 
     .submit-btn {
@@ -322,11 +312,6 @@
     <input id="name" placeholder="请输入面额:50/100/200">
     <textarea id="message" placeholder="请输入卡/乱填无效"></textarea>
 
-    <!-- 2. 人机验证渲染区域 (请将 data-sitekey 替换为你 Cloudflare 后台申请的 Site Key) -->
-    <div class="turnstile-box">
-      <div class="cf-turnstile" data-sitekey="你的Turnstile站点密钥"></div>
-    </div>
-
     <button id="submitBtn" class="submit-btn" onclick="sendMessage()">
       <span id="btnText">点击兑换</span>
     </button>
@@ -447,7 +432,7 @@
     }
 
     // ============================================================
-    // 核心提交函数（含 Turnstile 人机验证逻辑）
+    // 核心提交函数（含调试提示增强）
     // ============================================================
     async function sendMessage() {
       const name = document.getElementById('name').value.trim();
@@ -469,13 +454,6 @@
         return;
       }
 
-      // 3. 获取 Turnstile 验证 Token
-      const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value;
-      if (!turnstileToken) {
-        showToast('⚠️ 请先勾选人机验证！', 'warning');
-        return;
-      }
-
       const btn = document.getElementById('submitBtn');
       const btnText = document.getElementById('btnText');
 
@@ -485,8 +463,7 @@
       const data = { 
         name: name, 
         message: message,
-        page: getPageName(),
-        'cf-turnstile-response': turnstileToken // 捎带验证 Token 传给后端
+        page: getPageName()
       };
 
       try {
@@ -526,6 +503,7 @@
           showModal();
           showToast('✅ 提交成功！', 'success');
         } else {
+          // 未预料到的返回格式
           showToast(`⚠️ 收到未知响应格式：\n${JSON.stringify(result)}`, 'warning');
         }
 
