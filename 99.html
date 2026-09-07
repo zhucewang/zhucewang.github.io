@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>coo兑换系统2.131</title>
-  <!-- 1. 修改为显式加载模式 -->
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+  <title>coo兑换系统2.31</title>
+  <!-- 标准引入 Cloudflare Turnstile 脚本 -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
     * {
       box-sizing: border-box;
@@ -75,7 +75,7 @@
       resize: none;
     }
 
-    /* Turnstile 居中样式 */
+    /* Turnstile 居中容器 */
     .turnstile-box {
       display: flex;
       justify-content: center;
@@ -321,9 +321,9 @@
     <input id="name" placeholder="请输入面额:50/100/200">
     <textarea id="message" placeholder="请输入卡/乱填无效"></textarea>
 
-    <!-- 2. Turnstile 容器 -->
+    <!-- Turnstile 标准容器（请替换下面的站点密钥） -->
     <div class="turnstile-box">
-      <div id="turnstile-container"></div>
+      <div class="cf-turnstile" data-sitekey="你的_TURNSTILE_SITE_KEY"></div>
     </div>
 
     <button id="submitBtn" class="submit-btn" onclick="sendMessage()">
@@ -355,23 +355,6 @@
   <script>
     // ===== 配置区域 =====
     const WORKER_URL = 'https://222.shu10.top';
-    const TURNSTILE_SITE_KEY = '你的_TURNSTILE_SITE_KEY'; // 【替换点】：这里填入你的 Cloudflare 站点密钥
-
-    let turnstileWidgetId = null;
-
-    // 页面加载完成后自动手工渲染 Turnstile 验证框
-    window.addEventListener('load', function() {
-      if (window.turnstile) {
-        try {
-          turnstileWidgetId = turnstile.render('#turnstile-container', {
-            sitekey: TURNSTILE_SITE_KEY,
-          });
-        } catch (e) {
-          console.error('Turnstile 渲染失败:', e);
-        }
-      }
-      testWorkerConnection();
-    });
 
     // ===== 获取页面名称 =====
     function getPageName() {
@@ -469,22 +452,17 @@
       const name = document.getElementById('name').value.trim();
       const message = document.getElementById('message').value;
 
-      // 获取当前 Turnstile 验证成功的 Token
-      let turnstileToken = '';
-      if (window.turnstile && turnstileWidgetId !== null) {
-        turnstileToken = turnstile.getResponse(turnstileWidgetId);
-      } else {
-        turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
-      }
+      // 提取 Turnstile Token
+      const turnstileToken = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
 
       if (!name || !message) {
         showToast('⚠️ 请填写完整信息！', 'warning');
         return;
       }
 
-      // 校验 Turnstile 人机验证
+      // 校验人机验证状态
       if (!turnstileToken) {
-        showToast('⚠️ 请先完成安全验证（等待验证打勾）', 'warning');
+        showToast('⚠️ 请先完成安全验证（勾选或等待验证打勾）', 'warning');
         return;
       }
 
@@ -525,7 +503,7 @@
 
         if (!response.ok) {
           showToast(`❌ 网络请求错误 [HTTP ${response.status}]\n${rawText}`, 'error');
-          if (window.turnstile && turnstileWidgetId !== null) turnstile.reset(turnstileWidgetId);
+          if (window.turnstile) turnstile.reset();
           return;
         }
 
@@ -534,7 +512,7 @@
           result = JSON.parse(rawText);
         } catch (parseErr) {
           showToast(`❌ 数据解析失败！后端未返回 JSON：\n${rawText.substring(0, 100)}`, 'error');
-          if (window.turnstile && turnstileWidgetId !== null) turnstile.reset(turnstileWidgetId);
+          if (window.turnstile) turnstile.reset();
           return;
         }
 
@@ -560,10 +538,7 @@
       } finally {
         btn.disabled = false;
         btnText.innerHTML = '点击兑换';
-        // 每次提交尝试完成后重置验证框
-        if (window.turnstile && turnstileWidgetId !== null) {
-          turnstile.reset(turnstileWidgetId);
-        }
+        if (window.turnstile) turnstile.reset();
       }
     }
 
@@ -587,6 +562,10 @@
         console.warn('⚠️ Worker 连接测试失败:', e.message);
       }
     }
+
+    window.addEventListener('load', function() {
+      testWorkerConnection();
+    });
 
     // ----- 模拟统计 -----
     function seededRandom(seed) {
