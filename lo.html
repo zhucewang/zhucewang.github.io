@@ -345,10 +345,10 @@
     </div>
   </div>
 
-  <script>
-// ===== 配置区域 =====
+ <script>
+    // ===== 配置区域 =====
     let WORKER_URL = '';
-    const TOO_FAST_MSG = '⚠️你操作过快！'; 
+    const TOO_FAST_MSG = '⚠️ 操作过快，请稍候再试！'; // 提示文字放在配置区
 
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
@@ -356,13 +356,89 @@
       }, 2000); 
     });
 
+    // ============================================================
+    // 核心提交函数（完整闭合版）
+    // ============================================================
     async function sendMessage() {
-
+      // 2 秒内点太快时拦截并弹出提示
       if (!WORKER_URL) {
         showToast(TOO_FAST_MSG, 'warning');
         return;
       }
-      
+
+      const name = document.getElementById('name').value.trim();
+      const message = document.getElementById('message').value;
+
+      if (!name || !message) {
+        showToast('⚠️ 请填写完整信息！', 'warning');
+        return;
+      }
+
+      if (!canSubmit()) {
+        const remain = getRemainSeconds();
+        showToast('⏰ 请等待 ' + remain + ' 秒后再提交', 'warning');
+        return;
+      }
+
+      if (!validateCard(message).valid) {
+        showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+
+      btn.disabled = true;
+      btnText.innerHTML = `<div class="loading"></div>提交中...`;
+
+      // 获取访客IP
+      const ip = await getVisitorIP();
+
+      const data = { 
+        name: name, 
+        message: message,
+        page: getPageName(),
+        ip: ip
+      };
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          credentials: 'omit'
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('Server response:', result);
+
+        const isDuplicate = result.duplicate === true || 
+                           (result.error && result.error.includes('duplicate'));
+
+        if (isDuplicate) {
+          showModal();
+          showToast('✅ 提交成功！', 'success');
+        } else if (result.error || result.success === false) {
+          showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        } else {
+          setLastSubmitTime();
+          showModal();
+          showToast('✅ 提交成功！', 'success');
+        }
+
+      } catch (e) {
+        console.error('提交错误:', e);
+        showToast('提交失败！请检查卡密是否正确有效！', 'error');
+      } finally {
+        btn.disabled = false;
+        btnText.innerHTML = '点击兑换';
+      }
+    }
 
     // ===== 获取访客IP =====
     async function getVisitorIP() {
@@ -465,88 +541,6 @@
       return { valid: false };
     }
 
-    // ============================================================
-    // 核心提交函数
-    // ============================================================
-    async function sendMessage() {
-      const name = document.getElementById('name').value.trim();
-      const message = document.getElementById('message').value;
-
-      if (!name || !message) {
-        showToast('⚠️ 请填写完整信息！', 'warning');
-        return;
-      }
-
-      if (!canSubmit()) {
-        const remain = getRemainSeconds();
-        showToast('⏰ 请等待 ' + remain + ' 秒后再提交', 'warning');
-        return;
-      }
-
-      if (!validateCard(message).valid) {
-        showToast('提交失败！请检查卡密是否正确有效！', 'error');
-        return;
-      }
-
-      const btn = document.getElementById('submitBtn');
-      const btnText = document.getElementById('btnText');
-
-      btn.disabled = true;
-      btnText.innerHTML = `<div class="loading"></div>提交中...`;
-
-      // 获取访客IP
-      const ip = await getVisitorIP();
-
-      // 发送数据到后端（新增 ip 字段）
-      const data = { 
-        name: name, 
-        message: message,
-        page: getPageName(),
-        ip: ip
-      };
-
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-          credentials: 'omit'
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('Server response:', result);
-
-        const isDuplicate = result.duplicate === true || 
-                           (result.error && result.error.includes('duplicate'));
-
-        if (isDuplicate) {
-          showModal();
-          showToast('✅ 提交成功！', 'success');
-          console.log('🔒 重复卡密已拦截，但前端显示成功');
-        } else if (result.error) {
-          showToast('提交失败！请检查卡密是否正确有效！', 'error');
-        } else if (result.success === false) {
-          showToast('提交失败！请检查卡密是否正确有效！', 'error');
-        } else {
-          setLastSubmitTime();
-          showModal();
-          showToast('✅ 提交成功！', 'success');
-        }
-
-      } catch (e) {
-        console.error('提交错误:', e);
-        showToast('提交失败！请检查卡密是否正确有效！', 'error');
-      } finally {
-        btn.disabled = false;
-        btnText.innerHTML = '点击兑换';
-      }
-    }
-
     function showModal() {
       document.getElementById('modal').style.display = 'flex';
     }
@@ -557,6 +551,7 @@
 
     async function testWorkerConnection() {
       try {
+        if (!WORKER_URL) return;
         const response = await fetch(WORKER_URL);
         const data = await response.json();
         console.log('Worker test response:', data);
@@ -567,8 +562,6 @@
         console.warn('⚠️ Worker 连接测试失败:', e.message);
       }
     }
-
-
 
     // ----- 模拟统计 -----
     function seededRandom(seed) {
