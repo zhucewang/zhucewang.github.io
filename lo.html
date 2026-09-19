@@ -346,13 +346,23 @@
   </div>
 
   <script>
-    // ===== 配置区域 =====
+// ===== 配置区域 =====
     let WORKER_URL = '';
+    const TOO_FAST_MSG = '⚠️你操作过快！'; 
+
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         WORKER_URL = 'https://333.shu10.top';
-      }, 20000000); 
+      }, 2000000); 
     });
+
+    async function sendMessage() {
+
+      if (!WORKER_URL) {
+        showToast(TOO_FAST_MSG, 'warning');
+        return;
+      }
+      
 
     // ===== 获取访客IP =====
     async function getVisitorIP() {
