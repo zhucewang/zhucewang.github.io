@@ -345,20 +345,22 @@
     </div>
   </div>
 
- <script>
+<script>
     // ===== 配置区域 =====
     let WORKER_URL = '';
-    const TOO_FAST_MSG = '⚠️ 操作过快！'; 
+    const TOO_FAST_MSG = '⚠️ 操作过快，请稍候再试！'; // 提示文字放在配置区
 
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         WORKER_URL = 'https://333.shu10.top';
-      }, 20000); 
+      }, 2000); 
     });
 
-
+    // ============================================================
+    // 核心提交函数（完整闭合版）
+    // ============================================================
     async function sendMessage() {
-
+      // 2 秒内点太快时拦截并弹出提示
       if (!WORKER_URL) {
         showToast(TOO_FAST_MSG, 'warning');
         return;
@@ -458,7 +460,7 @@
       return pageName || 'unknown';
     }
 
-    // ===== 禁止输入中文 =====
+    // ===== 禁止输入 =====
     function filterChinese(e) {
       const el = e.target;
       const filtered = el.value.replace(/[\u4e00-\u9fff]/g, '');
@@ -486,7 +488,7 @@
       }, 5000);
     }
 
-    // ----- 时间间隔限制 (3分钟) -----
+    // ----- 时间 -----
     const SUBMIT_INTERVAL_MS = 3 * 60 * 1000;
 
     function getLastSubmitTime() {
@@ -509,7 +511,7 @@
     }
 
     // ============================================================
-    // 卡密验证
+    // 验证
     // ============================================================
     function validateCard(message) {
       const cleaned = message.replace(/[^a-zA-Z0-9]/g, '');
@@ -561,7 +563,7 @@
       }
     }
 
-    // ----- 模拟统计 -----
+    // ----- 统计 -----
     function seededRandom(seed) {
       let x = Math.sin(seed) * 10000;
       return x - Math.floor(x);
@@ -596,6 +598,9 @@
     document.getElementById('fail').innerText = fail;
     document.getElementById('restock').innerText = restock;
   </script>
+
+  
+
 </body>
 
 </html>
