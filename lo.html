@@ -344,7 +344,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         WORKER_URL = 'https://333.shu10.top';
-      }, 2000); 
+      }, 5000); 
     });
 
     // ===== 获取页面名称 =====
@@ -440,6 +440,12 @@
     // 核心提交函数（含调试提示增强）
     // ============================================================
     async function sendMessage() {
+      // ⬇️ 5秒内防刷拦截（刚打开页面的前5秒内点击会触发此提示）
+      if (!WORKER_URL) {
+        showToast('你操作太快！', 'warning');
+        return;
+      }
+
       const name = document.getElementById('name').value.trim();
       const message = document.getElementById('message').value;
 
