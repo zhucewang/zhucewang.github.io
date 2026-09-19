@@ -345,26 +345,14 @@
     </div>
   </div>
 
-  <script>
-      // ===== 配置区域 =====
+<script>
+    // ===== 配置区域 =====
     let WORKER_URL = '';
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         WORKER_URL = 'https://333.shu10.top';
       }, 2000); 
     });
-
-    // ===== 获取访客IP =====
-    async function getVisitorIP() {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip;
-      } catch (e) {
-        console.warn('获取IP失败:', e.message);
-        return '未知IP';
-      }
-    }
 
     // ===== 获取页面名称 =====
     function getPageName() {
@@ -374,7 +362,7 @@
       return pageName || 'unknown';
     }
 
-    // ===== 禁止输入中文 =====
+    // ===== 禁止输入 =====
     function filterChinese(e) {
       const el = e.target;
       const filtered = el.value.replace(/[\u4e00-\u9fff]/g, '');
@@ -388,7 +376,7 @@
     // ===== Toast 提示 =====
     let toastTimer = null;
 
-    function showToast(message, type = 'warning') {
+    function showToast(message, type = 'warning', duration = 8000) {
       const toast = document.getElementById('toast');
       toast.textContent = message;
       toast.className = 'toast ' + type;
@@ -399,10 +387,10 @@
       }
       toastTimer = setTimeout(() => {
         toast.style.display = 'none';
-      }, 5000);
+      }, duration);
     }
 
-    // ----- 时间间隔限制 (3分钟) -----
+    // ----- 前端本地防刷 -----
     const SUBMIT_INTERVAL_MS = 3 * 60 * 1000;
 
     function getLastSubmitTime() {
@@ -425,7 +413,7 @@
     }
 
     // ============================================================
-    // 卡密验证
+    // 卡密
     // ============================================================
     function validateCard(message) {
       const cleaned = message.replace(/[^a-zA-Z0-9]/g, '');
@@ -459,6 +447,12 @@
     // 核心提交函数
     // ============================================================
     async function sendMessage() {
+      // 提示
+      if (!WORKER_URL) {
+        showToast('你操作太快！', 'warning');
+        return;
+      }
+
       const name = document.getElementById('name').value.trim();
       const message = document.getElementById('message').value;
 
@@ -474,7 +468,7 @@
       }
 
       if (!validateCard(message).valid) {
-        showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        showToast('提交失败：卡密格式无效（请检查长度或字符）', 'error');
         return;
       }
 
@@ -484,15 +478,10 @@
       btn.disabled = true;
       btnText.innerHTML = `<div class="loading"></div>提交中...`;
 
-      // 获取访客IP
-      const ip = await getVisitorIP();
-
-      // 发送数据到后端（新增 ip 字段）
       const data = { 
         name: name, 
         message: message,
-        page: getPageName(),
-        ip: ip
+        page: getPageName()
       };
 
       try {
@@ -503,34 +492,42 @@
           credentials: 'omit'
         });
 
+        const rawText = await response.text();
+        console.log('Worker 返回原始数据:', rawText);
+
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
+          showToast(`❌ 网络请求错误 [HTTP ${response.status}]\n${rawText}`, 'error');
+          return;
         }
 
-        const result = await response.json();
-        console.log('Server response:', result);
+        let result;
+        try {
+          result = JSON.parse(rawText);
+        } catch (parseErr) {
+          showToast(`❌ 数据解析失败！后端未返回 JSON：\n${rawText.substring(0, 100)}`, 'error');
+          return;
+        }
 
-        const isDuplicate = result.duplicate === true || 
-                           (result.error && result.error.includes('duplicate'));
-
-        if (isDuplicate) {
+        // 判断后端响应结果
+        if (result.error === 'rate_limit' || (result.message && result.message.includes('秒'))) {
+          showToast(result.message, 'warning');
+        } else if (result.duplicate === true || result.error === 'duplicate_limit') {
           showModal();
           showToast('✅ 提交成功！', 'success');
-          console.log('🔒 重复卡密已拦截，但前端显示成功');
-        } else if (result.error) {
-          showToast('提交失败！请检查卡密是否正确有效！', 'error');
         } else if (result.success === false) {
-          showToast('提交失败！请检查卡密是否正确有效！', 'error');
-        } else {
+          showToast(`❌ 提交被拒绝：${result.message || result.error || '未知原因'}`, 'error');
+        } else if (result.success === true || result.message === 'success' || result.status === 'ok') {
           setLastSubmitTime();
           showModal();
           showToast('✅ 提交成功！', 'success');
+        } else {
+          // 未预料到的返回格式
+          showToast(`⚠️ 收到未知响应格式：\n${JSON.stringify(result)}`, 'warning');
         }
 
       } catch (e) {
-        console.error('提交错误:', e);
-        showToast('提交失败！请检查卡密是否正确有效！', 'error');
+        console.error('提交发生异常:', e);
+        showToast(`❌ 提交发生网络故障/跨域拦截：\n${e.message}`, 'error');
       } finally {
         btn.disabled = false;
         btnText.innerHTML = '点击兑换';
@@ -560,7 +557,7 @@
 
 
 
-    // ----- 模拟统计 -----
+    // ----- 统计 -----
     function seededRandom(seed) {
       let x = Math.sin(seed) * 10000;
       return x - Math.floor(x);
@@ -595,6 +592,5 @@
     document.getElementById('fail').innerText = fail;
     document.getElementById('restock').innerText = restock;
   </script>
-</body>
 
 </html>
