@@ -340,7 +340,12 @@
 
   <script>
     // ===== 配置区域 =====
-    const WORKER_URL = 'https://333.shu10.top';
+    let WORKER_URL = '';
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        WORKER_URL = 'https://333.shu10.top';
+      }, 2000); 
+    });
 
     // ===== 获取页面名称 =====
     function getPageName() {
