@@ -344,7 +344,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         WORKER_URL = 'https://333.shu10.top';
-      }, 10000); 
+      }, 2000); 
     });
 
     // ===== 获取页面名称 =====
@@ -355,7 +355,7 @@
       return pageName || 'unknown';
     }
 
-    // ===== 禁止输入中文 =====
+    // ===== 禁止输入 =====
     function filterChinese(e) {
       const el = e.target;
       const filtered = el.value.replace(/[\u4e00-\u9fff]/g, '');
@@ -406,7 +406,7 @@
     }
 
     // ============================================================
-    // 卡密验证
+    // 卡密
     // ============================================================
     function validateCard(message) {
       const cleaned = message.replace(/[^a-zA-Z0-9]/g, '');
@@ -437,10 +437,10 @@
     }
 
     // ============================================================
-    // 核心提交函数（含调试提示增强）
+    // 核心提交函数
     // ============================================================
     async function sendMessage() {
-      // ⬇️ 5秒内防刷拦截（刚打开页面的前5秒内点击会触发此提示）
+      // 提示
       if (!WORKER_URL) {
         showToast('你操作太快！', 'warning');
         return;
@@ -550,7 +550,7 @@
 
 
 
-    // ----- 模拟统计 -----
+    // ----- 统计 -----
     function seededRandom(seed) {
       let x = Math.sin(seed) * 10000;
       return x - Math.floor(x);
