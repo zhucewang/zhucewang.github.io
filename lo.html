@@ -348,7 +348,7 @@
  <script>
     // ===== 配置区域 =====
     let WORKER_URL = '';
-    const TOO_FAST_MSG = '⚠️ 操作过快，请稍候再试！'; // 提示文字放在配置区
+    const TOO_FAST_MSG = '⚠️ 操作过快！'; 
 
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
@@ -356,11 +356,9 @@
       }, 20000); 
     });
 
-    // ============================================================
-    // 核心提交函数（完整闭合版）
-    // ============================================================
+
     async function sendMessage() {
-      // 2 秒内点太快时拦截并弹出提示
+
       if (!WORKER_URL) {
         showToast(TOO_FAST_MSG, 'warning');
         return;
